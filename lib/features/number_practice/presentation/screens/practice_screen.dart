@@ -1,9 +1,16 @@
 part of 'package:pinpal/main.dart';
 
 class PracticeScreen extends StatefulWidget {
-  const PracticeScreen({super.key, required this.settings});
+  const PracticeScreen({
+    super.key,
+    required this.settings,
+    required this.highScore,
+    required this.onUpdateHighScore,
+  });
 
   final GameSettings settings;
+  final int highScore;
+  final ValueChanged<int> onUpdateHighScore;
 
   @override
   State<PracticeScreen> createState() => _PracticeScreenState();
@@ -17,6 +24,7 @@ class _PracticeScreenState extends State<PracticeScreen>
   String _input = '';
   FeedbackState? _feedback;
   int? _hintNumber;
+  int _correctCount = 0;
   Timer? _hintTimer;
   Timer? _feedbackTimer;
 
@@ -85,7 +93,12 @@ class _PracticeScreenState extends State<PracticeScreen>
 
   void _checkPasscode(String input) {
     if (input == _targetPasscode) {
-      setState(() => _feedback = FeedbackState.success);
+      final nextCount = _correctCount + 1;
+      setState(() {
+        _correctCount = nextCount;
+        _feedback = FeedbackState.success;
+      });
+      widget.onUpdateHighScore(nextCount);
       _feedbackTimer = Timer(const Duration(milliseconds: 1500), () {
         if (!mounted) {
           return;
@@ -140,17 +153,19 @@ class _PracticeScreenState extends State<PracticeScreen>
           SafeArea(
             child: Column(
               children: [
-                Align(
-                  alignment: Alignment.topLeft,
-                  child: TextButton.icon(
-                    onPressed: () => Navigator.of(context).pop(),
-                    icon: const Icon(Icons.arrow_back_rounded),
-                    label: const Text('Settings'),
-                    style: TextButton.styleFrom(
-                      foregroundColor: const Color(0xff3b82f6),
-                      padding: const EdgeInsets.all(16),
+                GameHeader(
+                  leadingLabel: 'Home',
+                  onBack: () => Navigator.of(context).pop(),
+                  center: Text(
+                    '$_correctCount',
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontFeatures: [FontFeature.tabularFigures()],
+                      fontFamily: 'monospace',
                     ),
                   ),
+                  trailing: BestScoreLabel(value: '${widget.highScore}'),
                 ),
                 Expanded(
                   child: Column(

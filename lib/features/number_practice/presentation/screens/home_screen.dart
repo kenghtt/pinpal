@@ -37,107 +37,119 @@ class _HomeActionButton extends StatelessWidget {
     required this.icon,
     required this.label,
     required this.primary,
+    this.gradientColors,
+    this.foregroundColor,
+    this.borderColor,
     required this.onPressed,
   });
 
   final IconData icon;
   final String label;
   final bool primary;
+  final List<Color>? gradientColors;
+  final Color? foregroundColor;
+  final Color? borderColor;
   final VoidCallback onPressed;
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(primary ? 24 : 16);
-    return Stack(
-      clipBehavior: Clip.none,
-      children: [
-        DecoratedBox(
-          decoration: BoxDecoration(
-            color: primary ? Colors.white : null,
-            gradient: primary
-                ? null
-                : const LinearGradient(
-                    colors: [Color(0xfffacc15), Color(0xfffb923c)],
-                  ),
-            borderRadius: radius,
-            border: primary
-                ? null
-                : Border.all(color: const Color(0x80eab308), width: 2),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.black.withAlpha(primary ? 64 : 38),
-                blurRadius: primary ? 32 : 18,
-                offset: const Offset(0, 12),
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: radius,
-              onTap: onPressed,
-              child: Padding(
-                padding: EdgeInsets.symmetric(
-                  vertical: primary ? 32 : 20,
-                  horizontal: 24,
-                ),
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Icon(
-                      icon,
-                      size: primary ? 40 : 28,
-                      color: primary
-                          ? const Color(0xff9333ea)
-                          : const Color(0xff78350f),
-                    ),
-                    SizedBox(width: primary ? 16 : 12),
-                    Text(
-                      label,
-                      style: TextStyle(
-                        color: primary
-                            ? const Color(0xff9333ea)
-                            : const Color(0xff78350f),
-                        fontSize: primary ? 30 : 20,
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-        if (!primary)
-          Positioned(
-            top: -8,
-            right: -8,
+    final radius = BorderRadius.circular(primary ? 24 : 12);
+    final textColor =
+        foregroundColor ?? (primary ? const Color(0xff9333ea) : Colors.white);
+    final fontWeight = primary ? FontWeight.w800 : FontWeight.w700;
+    return SizedBox(
+      width: double.infinity,
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          SizedBox(height: primary ? 104 : 88),
+          Positioned.fill(
             child: DecoratedBox(
               decoration: BoxDecoration(
-                color: const Color(0xfffacc15),
-                borderRadius: BorderRadius.circular(999),
-                boxShadow: const [
+                color: primary ? Colors.white : null,
+                gradient: primary
+                    ? null
+                    : LinearGradient(
+                        colors:
+                            gradientColors ??
+                            const [Color(0xfffacc15), Color(0xfffb923c)],
+                      ),
+                borderRadius: radius,
+                border: primary
+                    ? null
+                    : Border.all(
+                        color: borderColor ?? Colors.white24,
+                        width: 2,
+                      ),
+                boxShadow: [
                   BoxShadow(
-                    color: Colors.black26,
-                    blurRadius: 10,
-                    offset: Offset(0, 4),
+                    color: Colors.black.withAlpha(primary ? 77 : 51),
+                    blurRadius: primary ? 20 : 8,
+                    offset: Offset(0, primary ? 10 : 4),
                   ),
                 ],
               ),
-              child: const Padding(
-                padding: EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-                child: Text(
-                  '⚡ BONUS1',
-                  style: TextStyle(
-                    color: Color(0xff78350f),
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
+              child: Material(
+                color: Colors.transparent,
+                child: InkWell(
+                  borderRadius: radius,
+                  onTap: onPressed,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(
+                      vertical: primary ? 32 : 18,
+                      horizontal: primary ? 24 : 16,
+                    ),
+                    child: primary
+                        ? Row(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            crossAxisAlignment: CrossAxisAlignment.center,
+                            children: [
+                              Icon(icon, size: 40, color: textColor),
+                              const SizedBox(width: 16),
+                              Flexible(
+                                child: FittedBox(
+                                  fit: BoxFit.scaleDown,
+                                  child: Text(
+                                    label,
+                                    maxLines: 1,
+                                    style: TextStyle(
+                                      color: textColor,
+                                      fontSize: 30,
+                                      fontWeight: fontWeight,
+                                      height: 1,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          )
+                        : Column(
+                            mainAxisAlignment: MainAxisAlignment.center,
+                            children: [
+                              Icon(icon, size: 24, color: textColor),
+                              const SizedBox(height: 8),
+                              FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  label,
+                                  maxLines: 1,
+                                  style: TextStyle(
+                                    color: textColor,
+                                    fontSize: 14,
+                                    fontWeight: fontWeight,
+                                    height: 1,
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
                   ),
                 ),
               ),
             ),
           ),
-      ],
+        ],
+      ),
     );
   }
 }
@@ -457,18 +469,52 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   final GameSettingsStore _store = GameSettingsStore();
+  final HighScoreStore _highScoreStore = HighScoreStore();
   GameSettings _settings = GameSettings.defaults;
+  HighScores _highScores = HighScores.defaults;
 
   @override
   void initState() {
     super.initState();
     _loadSettings();
+    _loadHighScores();
   }
 
   Future<void> _loadSettings() async {
     final settings = await _store.load();
     if (mounted) {
       setState(() => _settings = settings);
+    }
+  }
+
+  Future<void> _loadHighScores() async {
+    final highScores = await _highScoreStore.load();
+    if (mounted) {
+      setState(() => _highScores = highScores);
+    }
+  }
+
+  Future<void> _updatePracticeHighScore(int score) async {
+    final highScores = await _highScoreStore.updatePracticeHighScore(score);
+    if (mounted) {
+      setState(() => _highScores = highScores);
+    }
+  }
+
+  Future<void> _updatePasscodeHeroHighScore(int score) async {
+    final highScores = await _highScoreStore.updatePasscodeHeroHighScore(score);
+    if (mounted) {
+      setState(() => _highScores = highScores);
+    }
+  }
+
+  Future<void> _updateSpeedRunHighScore(int count, int timeMs) async {
+    final highScores = await _highScoreStore.updateSpeedRunHighScore(
+      count,
+      timeMs,
+    );
+    if (mounted) {
+      setState(() => _highScores = highScores);
     }
   }
 
@@ -488,9 +534,29 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   void _openPractice() {
+    final practiceSettings = _settings.copyWith(
+      isRandomMode: true,
+      passcodeLength: 1,
+    );
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => PracticeScreen(settings: _settings),
+        builder: (context) => PracticeScreen(
+          settings: practiceSettings,
+          highScore: _highScores.practice,
+          onUpdateHighScore: _updatePracticeHighScore,
+        ),
+      ),
+    );
+  }
+
+  void _openPasscodeHero() {
+    Navigator.of(context).push(
+      MaterialPageRoute<void>(
+        builder: (context) => PracticeScreen(
+          settings: _settings,
+          highScore: _highScores.passcodeHero,
+          onUpdateHighScore: _updatePasscodeHeroHighScore,
+        ),
       ),
     );
   }
@@ -498,7 +564,12 @@ class _HomeScreenState extends State<HomeScreen> {
   void _openSpeedRun() {
     Navigator.of(context).push(
       MaterialPageRoute<void>(
-        builder: (context) => SpeedRunScreen(settings: _settings),
+        builder: (context) => SpeedRunScreen(
+          settings: _settings,
+          highScore: _highScores.speedRunBestFor(_settings.speedRunCount),
+          onUpdateHighScore: (timeMs) =>
+              _updateSpeedRunHighScore(_settings.speedRunCount, timeMs),
+        ),
       ),
     );
   }
@@ -531,13 +602,21 @@ class _HomeScreenState extends State<HomeScreen> {
                   ),
                   Center(
                     child: SingleChildScrollView(
-                      padding: const EdgeInsets.all(24),
+                      padding: const EdgeInsets.symmetric(
+                        horizontal: 30,
+                        vertical: 24,
+                      ),
                       child: ConstrainedBox(
-                        constraints: const BoxConstraints(maxWidth: 440),
+                        constraints: const BoxConstraints(maxWidth: 448),
                         child: Column(
                           mainAxisSize: MainAxisSize.min,
+                          crossAxisAlignment: CrossAxisAlignment.stretch,
                           children: [
-                            const Text('🔢', style: TextStyle(fontSize: 112)),
+                            const Text(
+                              '🔢',
+                              textAlign: TextAlign.center,
+                              style: TextStyle(fontSize: 112),
+                            ),
                             const SizedBox(height: 16),
                             const Text(
                               'Number\nPractice',
@@ -559,6 +638,7 @@ class _HomeScreenState extends State<HomeScreen> {
                             const SizedBox(height: 16),
                             const Text(
                               "Let's learn numbers!",
+                              textAlign: TextAlign.center,
                               style: TextStyle(
                                 color: Color(0xe6ffffff),
                                 fontSize: 24,
@@ -572,18 +652,48 @@ class _HomeScreenState extends State<HomeScreen> {
                               ),
                             ),
                             const SizedBox(height: 32),
-                            _HomeActionButton(
-                              icon: Icons.play_arrow_rounded,
-                              label: "Let's Practice!",
-                              primary: true,
-                              onPressed: _openPractice,
+                            SizedBox(
+                              width: double.infinity,
+                              child: _HomeActionButton(
+                                icon: Icons.play_arrow_rounded,
+                                label: "Let's Practice!",
+                                primary: true,
+                                onPressed: _openPractice,
+                              ),
                             ),
                             const SizedBox(height: 16),
-                            _HomeActionButton(
-                              icon: Icons.bolt_rounded,
-                              label: 'Speed Challenge',
-                              primary: false,
-                              onPressed: _openSpeedRun,
+                            Row(
+                              children: [
+                                Expanded(
+                                  child: _HomeActionButton(
+                                    icon: Icons.shield_rounded,
+                                    label: 'Passcode Hero',
+                                    primary: false,
+                                    gradientColors: const [
+                                      Color(0xff3b82f6),
+                                      Color(0xff22d3ee),
+                                    ],
+                                    borderColor: const Color(0x803b82f6),
+                                    onPressed: _openPasscodeHero,
+                                  ),
+                                ),
+                                const SizedBox(width: 12),
+                                Expanded(
+                                  child: _HomeActionButton(
+                                    icon: Icons.bolt_rounded,
+                                    label: 'Speed Run',
+                                    primary: false,
+                                    gradientColors: const [
+                                      Color(0xfffacc15),
+                                      Color(0xfffb923c),
+                                    ],
+                                    foregroundColor: const Color(0xff713f12),
+                                    borderColor: const Color(0x80f59e0b),
+                                    // badge: '⚡',
+                                    onPressed: _openSpeedRun,
+                                  ),
+                                ),
+                              ],
                             ),
                           ],
                         ),

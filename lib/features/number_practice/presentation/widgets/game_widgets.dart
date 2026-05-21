@@ -426,6 +426,94 @@ class _TopStat extends StatelessWidget {
   }
 }
 
+class GameHeader extends StatelessWidget {
+  const GameHeader({
+    super.key,
+    required this.leadingLabel,
+    required this.onBack,
+    required this.center,
+    required this.trailing,
+  });
+
+  final String leadingLabel;
+  final VoidCallback onBack;
+  final Widget center;
+  final Widget trailing;
+
+  @override
+  Widget build(BuildContext context) {
+    return DecoratedBox(
+      decoration: BoxDecoration(
+        color: Colors.white.withAlpha(13),
+        border: Border(bottom: BorderSide(color: Colors.white.withAlpha(26))),
+      ),
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: Row(
+          children: [
+            SizedBox(
+              width: 96,
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: TextButton.icon(
+                  onPressed: onBack,
+                  icon: const Icon(Icons.arrow_back_rounded, size: 18),
+                  label: Text(leadingLabel),
+                  style: TextButton.styleFrom(
+                    foregroundColor: Colors.white,
+                    backgroundColor: Colors.white.withAlpha(26),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(999),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            Expanded(child: Center(child: center)),
+            SizedBox(
+              width: 132,
+              child: Align(alignment: Alignment.centerRight, child: trailing),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class BestScoreLabel extends StatelessWidget {
+  const BestScoreLabel({super.key, required this.value});
+
+  final String value;
+
+  @override
+  Widget build(BuildContext context) {
+    if (value == '0') {
+      return const SizedBox.shrink();
+    }
+
+    return Row(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        const Text(
+          'Best:',
+          style: TextStyle(color: Color(0xff9ca3af), fontSize: 12),
+        ),
+        const SizedBox(width: 8),
+        Text(
+          value,
+          style: const TextStyle(
+            color: Color(0xff9ca3af),
+            fontSize: 14,
+            fontFeatures: [FontFeature.tabularFigures()],
+            fontFamily: 'monospace',
+          ),
+        ),
+      ],
+    );
+  }
+}
+
 class _ResultStatRow extends StatelessWidget {
   const _ResultStatRow({
     required this.label,

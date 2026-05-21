@@ -1,9 +1,16 @@
 part of 'package:pinpal/main.dart';
 
 class SpeedRunScreen extends StatefulWidget {
-  const SpeedRunScreen({super.key, required this.settings});
+  const SpeedRunScreen({
+    super.key,
+    required this.settings,
+    required this.highScore,
+    required this.onUpdateHighScore,
+  });
 
   final GameSettings settings;
+  final int highScore;
+  final ValueChanged<int> onUpdateHighScore;
 
   @override
   State<SpeedRunScreen> createState() => _SpeedRunScreenState();
@@ -13,17 +20,35 @@ class _SpeedRunScreenState extends State<SpeedRunScreen>
     with TickerProviderStateMixin {
   final Random _random = Random();
   late final AnimationController _shakeController;
-  late int _targetNumber;
+  late List<int> _numberQueue;
   int _completed = 0;
   int _wrongAttempts = 0;
   int _elapsedMilliseconds = 0;
   bool _timerStarted = false;
   bool _wrongAnimation = false;
+  bool _slideAnimation = false;
   int? _hintNumber;
   Timer? _speedTimer;
   Timer? _hintTimer;
   Timer? _wrongTimer;
+  Timer? _queueTimer;
   DateTime? _startTime;
+
+  int _nextTargetNumber({int? previous}) {
+    final candidate = _random.nextInt(10);
+    if (previous == null || candidate != previous) {
+      return candidate;
+    }
+    return (candidate + 1 + _random.nextInt(9)) % 10;
+  }
+
+  List<int> _buildInitialQueue() {
+    final queue = <int>[];
+    for (var index = 0; index < 4; index++) {
+      queue.add(_nextTargetNumber(previous: queue.isEmpty ? null : queue.last));
+    }
+    return queue;
+  }
 
   @override
   void initState() {
@@ -32,7 +57,7 @@ class _SpeedRunScreenState extends State<SpeedRunScreen>
       vsync: this,
       duration: const Duration(milliseconds: 300),
     );
-    _targetNumber = _random.nextInt(10);
+    _numberQueue = _buildInitialQueue();
     _restartHintTimer();
   }
 
@@ -41,6 +66,7 @@ class _SpeedRunScreenState extends State<SpeedRunScreen>
     _speedTimer?.cancel();
     _hintTimer?.cancel();
     _wrongTimer?.cancel();
+    _queueTimer?.cancel();
     _shakeController.dispose();
     super.dispose();
   }
@@ -73,22 +99,32 @@ class _SpeedRunScreenState extends State<SpeedRunScreen>
     }
     _hintTimer = Timer(const Duration(seconds: 10), () {
       if (mounted) {
-        setState(() => _hintNumber = _targetNumber);
+        setState(() => _hintNumber = _currentTargetNumber);
       }
     });
   }
 
+  int? get _currentTargetNumber =>
+      _numberQueue.isEmpty ? null : _numberQueue.first;
+
   void _handleNumber(int number) {
+    final currentTargetNumber = _currentTargetNumber;
+    if (_slideAnimation || currentTargetNumber == null) {
+      return;
+    }
+
     _startTimerIfNeeded();
     if (widget.settings.hapticFeedback) {
       HapticFeedback.selectionClick();
     }
     _restartHintTimer();
 
-    if (number == _targetNumber) {
+    if (number == currentTargetNumber) {
       final nextCompleted = _completed + 1;
       if (nextCompleted == widget.settings.speedRunCount) {
         _speedTimer?.cancel();
+        final finalMilliseconds = _elapsedMilliseconds + _wrongAttempts * 2000;
+        widget.onUpdateHighScore(finalMilliseconds);
         Navigator.of(context).pushReplacement(
           MaterialPageRoute<void>(
             builder: (context) => SpeedRunResultsScreen(
@@ -103,7 +139,21 @@ class _SpeedRunScreenState extends State<SpeedRunScreen>
 
       setState(() {
         _completed = nextCompleted;
-        _targetNumber = _random.nextInt(10);
+        _slideAnimation = true;
+      });
+      _queueTimer?.cancel();
+      _queueTimer = Timer(const Duration(milliseconds: 200), () {
+        if (!mounted) {
+          return;
+        }
+        setState(() {
+          final previous = _numberQueue.isEmpty ? null : _numberQueue.last;
+          _numberQueue = [
+            ..._numberQueue.skip(1),
+            _nextTargetNumber(previous: previous),
+          ];
+          _slideAnimation = false;
+        });
       });
       return;
     }
@@ -131,103 +181,86 @@ class _SpeedRunScreenState extends State<SpeedRunScreen>
           SafeArea(
             child: Column(
               children: [
-                DecoratedBox(
-                  decoration: BoxDecoration(
-                    color: Colors.white.withAlpha(13),
-                    border: Border(
-                      bottom: BorderSide(color: Colors.white.withAlpha(26)),
-                    ),
-                  ),
-                  child: Padding(
-                    padding: const EdgeInsets.all(16),
-                    child: Column(
-                      children: [
-                        Row(
-                          children: [
-                            TextButton.icon(
-                              onPressed: () => Navigator.of(context).pop(),
-                              icon: const Icon(Icons.arrow_back_rounded),
-                              label: const Text('Quit'),
-                              style: TextButton.styleFrom(
-                                foregroundColor: const Color(0xff3b82f6),
+                GameHeader(
+                  leadingLabel: 'Home',
+                  onBack: () => Navigator.of(context).pop(),
+                  center: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      _TopStat(
+                        icon: Icons.track_changes_rounded,
+                        iconColor: const Color(0xff22c55e),
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '$_completed',
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
+                                ),
                               ),
-                            ),
-                            const Spacer(),
-                            const Icon(
-                              Icons.timer_rounded,
-                              color: Color(0xfffacc15),
-                            ),
-                            const SizedBox(width: 8),
-                            Text(
-                              formatStopwatch(_elapsedMilliseconds),
-                              style: const TextStyle(
-                                color: Color(0xfffacc15),
-                                fontSize: 20,
-                                fontFeatures: [FontFeature.tabularFigures()],
-                                fontFamily: 'monospace',
+                              TextSpan(
+                                text: '/${widget.settings.speedRunCount}',
+                                style: const TextStyle(
+                                  color: Color(0xff9ca3af),
+                                  fontSize: 14,
+                                ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
                         ),
-                        const SizedBox(height: 12),
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.center,
-                          children: [
-                            _TopStat(
-                              icon: Icons.track_changes_rounded,
-                              iconColor: const Color(0xff22c55e),
-                              child: RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: '$_completed',
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    TextSpan(
-                                      text: '/${widget.settings.speedRunCount}',
-                                      style: const TextStyle(
-                                        color: Color(0xff9ca3af),
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
+                      ),
+                      const SizedBox(width: 16),
+                      _TopStat(
+                        icon: Icons.bolt_rounded,
+                        iconColor: const Color(0xffef4444),
+                        child: RichText(
+                          text: TextSpan(
+                            children: [
+                              TextSpan(
+                                text: '$_wrongAttempts',
+                                style: const TextStyle(
+                                  color: Color(0xffef4444),
+                                  fontSize: 18,
+                                  fontWeight: FontWeight.bold,
                                 ),
                               ),
-                            ),
-                            const SizedBox(width: 16),
-                            _TopStat(
-                              icon: Icons.bolt_rounded,
-                              iconColor: const Color(0xffef4444),
-                              child: RichText(
-                                text: TextSpan(
-                                  children: [
-                                    TextSpan(
-                                      text: '$_wrongAttempts',
-                                      style: const TextStyle(
-                                        color: Color(0xffef4444),
-                                        fontSize: 18,
-                                        fontWeight: FontWeight.bold,
-                                      ),
-                                    ),
-                                    const TextSpan(
-                                      text: ' wrong',
-                                      style: TextStyle(
-                                        color: Color(0xff9ca3af),
-                                        fontSize: 14,
-                                      ),
-                                    ),
-                                  ],
+                              const TextSpan(
+                                text: ' wrong',
+                                style: TextStyle(
+                                  color: Color(0xff9ca3af),
+                                  fontSize: 14,
                                 ),
                               ),
-                            ),
-                          ],
+                            ],
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  trailing: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.timer_rounded, color: Color(0xfffacc15)),
+                      const SizedBox(width: 8),
+                      Text(
+                        formatStopwatch(_elapsedMilliseconds),
+                        style: const TextStyle(
+                          color: Color(0xfffacc15),
+                          fontSize: 20,
+                          fontFeatures: [FontFeature.tabularFigures()],
+                          fontFamily: 'monospace',
+                        ),
+                      ),
+                      if (widget.highScore > 0) ...[
+                        const SizedBox(width: 16),
+                        BestScoreLabel(
+                          value: formatStopwatch(widget.highScore),
                         ),
                       ],
-                    ),
+                    ],
                   ),
                 ),
                 Expanded(
@@ -235,13 +268,13 @@ class _SpeedRunScreenState extends State<SpeedRunScreen>
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
                       const Text(
-                        'Type this number:',
+                        'Type these numbers:',
                         style: TextStyle(
                           color: Color(0xff9ca3af),
                           fontSize: 20,
                         ),
                       ),
-                      const SizedBox(height: 16),
+                      const SizedBox(height: 24),
                       AnimatedBuilder(
                         animation: _shakeController,
                         builder: (context, child) => Transform.translate(
@@ -251,14 +284,25 @@ class _SpeedRunScreenState extends State<SpeedRunScreen>
                           ),
                           child: child,
                         ),
-                        child: Text(
-                          '$_targetNumber',
-                          style: TextStyle(
-                            color: _wrongAnimation
-                                ? const Color(0xffef4444)
-                                : Colors.white,
-                            fontSize: 128,
-                            fontWeight: FontWeight.w300,
+                        child: SizedBox(
+                          width: double.infinity,
+                          child: ConstrainedBox(
+                            constraints: const BoxConstraints(minHeight: 180),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              crossAxisAlignment: CrossAxisAlignment.center,
+                              spacing: 24,
+                              children: _numberQueue.indexed
+                                  .map(
+                                    (entry) => _QueueNumber(
+                                      number: entry.$2,
+                                      index: entry.$1,
+                                      slideAnimation: _slideAnimation,
+                                      wrongAnimation: _wrongAnimation,
+                                    ),
+                                  )
+                                  .toList(),
+                            ),
                           ),
                         ),
                       ),
@@ -302,6 +346,56 @@ class _SpeedRunScreenState extends State<SpeedRunScreen>
             ),
           ),
         ],
+      ),
+    );
+  }
+}
+
+class _QueueNumber extends StatelessWidget {
+  const _QueueNumber({
+    required this.number,
+    required this.index,
+    required this.slideAnimation,
+    required this.wrongAnimation,
+  });
+
+  final int number;
+  final int index;
+  final bool slideAnimation;
+  final bool wrongAnimation;
+
+  @override
+  Widget build(BuildContext context) {
+    final isCurrent = index == 0;
+    final fontSize = switch (index) {
+      0 => 144.0,
+      1 => 80.0,
+      _ => 50.0,
+    };
+    final opacity = switch (index) {
+      0 => slideAnimation ? 0.0 : 1.0,
+      1 => 0.7,
+      _ => 0.4,
+    };
+
+    return AnimatedOpacity(
+      opacity: opacity,
+      duration: const Duration(milliseconds: 200),
+      curve: Curves.easeOut,
+      child: AnimatedScale(
+        scale: isCurrent && slideAnimation ? 0.95 : 1,
+        duration: const Duration(milliseconds: 200),
+        curve: Curves.easeOut,
+        child: Text(
+          '$number',
+          style: TextStyle(
+            color: isCurrent && wrongAnimation
+                ? const Color(0xffef4444)
+                : Colors.white,
+            fontSize: fontSize,
+            fontWeight: FontWeight.w300,
+          ),
+        ),
       ),
     );
   }

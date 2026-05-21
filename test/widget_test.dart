@@ -7,6 +7,6 @@ void main() {
   testWidgets('Number Practice app starts', (WidgetTester tester) async {
     await tester.pumpWidget(const NumberPracticeApp());
 
-    expect(find.text('Number Practice'), findsOneWidget);
+    expect(find.text('Number\nPractice'), findsOneWidget);
   });
 }

@@ -88,8 +88,6 @@ mobile platforms.
   For large libraries, export smaller, private libraries from a single top-level
   library.
 * **Library Organization:** Group related libraries in the same folder.
-* **API Documentation:** Add documentation comments to all public APIs,
-  including classes, constructors, methods, and top-level functions.
 * **Comments:** Write clear comments for complex or non-obvious code. Avoid
   over-commenting.
 * **Trailing Comments:** Don't add trailing comments.
@@ -133,9 +131,6 @@ When building reusable APIs, such as a library, follow these principles.
 
 * **Consider the User:** Design APIs from the perspective of the person who will
   be using them. The API should be intuitive and easy to use correctly.
-* **Documentation is Essential:** Good documentation is a part of good API
-  design. It should be clear, concise, and provide examples.
-
 ## Application Architecture
 * **Separation of Concerns:** Aim for separation of concerns similar to MVC/MVVM, with defined Model,
   View, and ViewModel/Controller roles.
@@ -708,70 +703,3 @@ textTheme: const TextTheme(
   labelSmall: TextStyle(fontSize: 11.0, color: Colors.grey),
 ),
 ```
-
-## Documentation
-
-* **`dartdoc`:** Write `dartdoc`-style comments for all public APIs.
-
-
-### Documentation Philosophy
-
-* **Comment wisely:** Use comments to explain why the code is written a certain
-  way, not what the code does. The code itself should be self-explanatory.
-* **Document for the user:** Write documentation with the reader in mind. If you
-  had a question and found the answer, add it to the documentation where you
-  first looked. This ensures the documentation answers real-world questions.
-* **No useless documentation:** If the documentation only restates the obvious
-  from the code's name, it's not helpful. Good documentation provides context
-  and explains what isn't immediately apparent.
-* **Consistency is key:** Use consistent terminology throughout your
-  documentation.
-
-### Commenting Style
-
-* **Use `///` for doc comments:** This allows documentation generation tools to
-  pick them up.
-* **Start with a single-sentence summary:** The first sentence should be a
-  concise, user-centric summary ending with a period.
-* **Separate the summary:** Add a blank line after the first sentence to create
-  a separate paragraph. This helps tools create better summaries.
-* **Avoid redundancy:** Don't repeat information that's obvious from the code's
-  context, like the class name or signature.
-* **Don't document both getter and setter:** For properties with both, only
-  document one. The documentation tool will treat them as a single field.
-
-### Writing Style
-
-* **Be brief:** Write concisely.
-* **Avoid jargon and acronyms:** Don't use abbreviations unless they are widely
-  understood.
-* **Use Markdown sparingly:** Avoid excessive markdown and never use HTML for
-  formatting.
-* **Use backticks for code:** Enclose code blocks in backtick fences, and
-  specify the language.
-
-### What to Document
-
-* **Public APIs are a priority:** Always document public APIs.
-* **Consider private APIs:** It's a good idea to document private APIs as well.
-* **Library-level comments are helpful:** Consider adding a doc comment at the
-  library level to provide a general overview.
-* **Include code samples:** Where appropriate, add code samples to illustrate usage.
-* **Explain parameters, return values, and exceptions:** Use prose to describe
-  what a function expects, what it returns, and what errors it might throw.
-* **Place doc comments before annotations:** Documentation should come before
-  any metadata annotations.
-
-## Accessibility (A11Y)
-Implement accessibility features to empower all users, assuming a wide variety
-of users with different physical abilities, mental abilities, age groups,
-education levels, and learning styles.
-
-* **Color Contrast:** Ensure text has a contrast ratio of at least **4.5:1**
-  against its background.
-* **Dynamic Text Scaling:** Test your UI to ensure it remains usable when users
-  increase the system font size.
-* **Semantic Labels:** Use the `Semantics` widget to provide clear, descriptive
-  labels for UI elements.
-* **Screen Reader Testing:** Regularly test your app with TalkBack (Android) and
-  VoiceOver (iOS).
